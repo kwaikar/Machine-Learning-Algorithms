@@ -3,10 +3,12 @@ package com.decisiontree;
 import java.io.File;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 
 import com.decisiontree.common.DecisionNode;
@@ -68,9 +70,9 @@ public class ID3Implementation {
 
 		for (FeatureCounts<Integer> countEntry : featureCounts) {
 			for (FeatureVector featureVector : inputFeatures) {
-				if (!featuresToBeExcluded.containsKey(countEntry.name)) {
+				if (!featuresToBeExcluded.containsKey(countEntry.getName())) {
 					Map<String, Integer> map = featureVector.getInputMap();
-					countEntry.incrementFeatureCounts(map.get(countEntry.name), featureVector.isClass());
+					countEntry.incrementFeatureCounts(map.get(countEntry.getName()), featureVector.isClass());
 				}
 			}
 			countEntry.populateOverallCounts();
@@ -85,39 +87,76 @@ public class ID3Implementation {
 
 		Map map = new HashMap();
 
-		List<FeatureCounts<Integer>> featureCounts = predictor.setEntropy(inputFeatureVectors, map);
+		List<FeatureCounts<Integer>> featureCounts = predictor.calculateInformationGain(inputFeatureVectors, map);
 		System.out.println(featureCounts);
-
-	}
-	
-	public void getBestAttribute(FeatureCounts count)
-	{
-		
+		predictor.getBestAttribute(featureCounts);
+		predictor.printTree("", predictor.getTreeUsingID3InformationGain(featureCounts, null, map));
 	}
 
-	/*public DecisionNode growTree(List<FeatureCounts> counts, FeatureCounts target,FeatureCounts attributes)
-	{
-		
-	}*/
+	/**
+	 * This method returns the best attribute that Tree should be split on.
+	 * 
+	 * @param counts
+	 * @return
+	 */
+	public <T> FeatureCounts<T> getBestAttribute(List<FeatureCounts<T>> counts) {
+		Collections.sort(counts);
+		System.out.println(counts);
+		return Collections.max(counts);
+	}
+
+	/**
+	 * This method prints Tree using DFS approach
+	 * 
+	 * @param tabsPrefix
+	 * @param node
+	 */
+	public <T> void printTree(String tabsPrefix, DecisionNode<T> node) {
+		System.out.println(tabsPrefix + node.getName() + "= " + node.getValueChosen() + " : "
+				+ (node.getResult() != null ? node.getResult() : ""));
+		if (CollectionUtils.isNotEmpty(node.getChildren())) {
+			for (DecisionNode<T> child : node.getChildren()) {
+				printTree(tabsPrefix + "\t", child);
+			}
+		}
+	}
+
+	public <T> DecisionNode<T> getTreeUsingID3InformationGain(List<FeatureCounts<T>> featureCounts,
+			DecisionNode<T> parent, Map map) {
+		if (parent == null) {
+			parent = new DecisionNode<T>(getBestAttribute(featureCounts));
+		}
+		System.out.println(parent);
+		return parent;
+	}
+
+	/*
+	 * public DecisionNode growTree(List<FeatureCounts> counts, FeatureCounts
+	 * target,FeatureCounts attributes) {
+	 * 
+	 * }
+	 */
 	/**
 	 * This method sets entropy in featureVectors sent.
+	 * 
 	 * @param inputFeatureVectors
 	 * @param map
 	 * @return
 	 */
-	public List<FeatureCounts<Integer>> setEntropy(List<FeatureVector> inputFeatureVectors, Map map) {
+	public List<FeatureCounts<Integer>> calculateInformationGain(List<FeatureVector> inputFeatureVectors, Map map) {
 		List<FeatureCounts<Integer>> featureCounts = extractFeatureCounts(inputFeatureVectors, map);
 		for (FeatureCounts<Integer> feature : featureCounts) {
 			Utils.setEntropy(feature.getOverallCounts());
 			double gain = feature.getOverallCounts().getEntropy();
-			double modS = feature.getOverallCounts().getNegativeProportionCount()+feature.getOverallCounts().getPositiveProportionCount();
+			double modS = feature.getOverallCounts().getNegativeProportionCount()
+					+ feature.getOverallCounts().getPositiveProportionCount();
 			for (OccuranceCounts count : feature.getValueStatistics().values()) {
 				Utils.setEntropy(count);
-				gain-=((count.getPositiveProportionCount()+count.getNegativeProportionCount())/modS)*count.getEntropy();
+				gain -= ((count.getPositiveProportionCount() + count.getNegativeProportionCount()) / modS)
+						* count.getEntropy();
 			}
 			feature.setInformationGain(gain);
-			
-			
+
 		}
 		return featureCounts;
 	}
