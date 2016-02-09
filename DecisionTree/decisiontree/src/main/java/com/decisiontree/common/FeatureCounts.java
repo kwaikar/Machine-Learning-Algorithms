@@ -6,15 +6,17 @@ import java.util.Map;
 /**
  * This class accumulates Feature counts for each of the feature.
  * 
- * @author kanchan
+ * @author Kanchan
  *
  */
-public class FeatureCounts<T> {
+public class FeatureCounts<T> implements Comparable<FeatureCounts<T>> {
 
 	public String name;
 
 	Map<T, OccuranceCounts> valueStatistics = new HashMap<T, OccuranceCounts>();
 	OccuranceCounts overallCounts = new OccuranceCounts();
+	private double informationGain;
+	
 
 	/**
 	 * This method increments the occurrence counts based on value.
@@ -86,13 +88,48 @@ public class FeatureCounts<T> {
 		}
 	}
 
+	/**
+	 * @return the overallCounts
+	 */
+	public OccuranceCounts getOverallCounts() {
+		return overallCounts;
+	}
+
+	/**
+	 * @param overallCounts the overallCounts to set
+	 */
+	public void setOverallCounts(OccuranceCounts overallCounts) {
+		this.overallCounts = overallCounts;
+	}
+
+ 
+
 	/* (non-Javadoc)
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
 	public String toString() {
 		return "FeatureCounts [name=" + name + ", valueStatistics=" + valueStatistics + ", overallCounts="
-				+ overallCounts + "]";
+				+ overallCounts + ", informationGain=" + informationGain + "]";
+	}
+
+	public int compareTo(FeatureCounts<T> o) {
+		return (  this.getOverallCounts().getEntropy().compareTo(o.getOverallCounts().getEntropy()));
+
+	}
+
+	/**
+	 * @return the informationGain
+	 */
+	public double getInformationGain() {
+		return informationGain;
+	}
+
+	/**
+	 * @param informationGain the informationGain to set
+	 */
+	public void setInformationGain(double informationGain) {
+		this.informationGain = informationGain;
 	}
 
  

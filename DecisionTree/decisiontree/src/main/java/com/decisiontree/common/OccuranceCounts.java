@@ -11,6 +11,7 @@ public class OccuranceCounts {
 
 	private int positiveProportionCount=0;
 	private int negativeProportionCount=0;
+	private double entropy;
 
 	/**
 	 * @return the positiveProportionCount
@@ -51,14 +52,29 @@ public class OccuranceCounts {
 	}
 	
 
-	/*
-	 * (non-Javadoc)
+	/**
+	 * @return the entropy
+	 */
+	public Double getEntropy() {
+		return entropy;
+	}
+
+	/**
+	 * @param entropy the entropy to set
+	 */
+	public void setEntropy(double entropy) {
+		this.entropy = entropy;
+	}
+
+	/* (non-Javadoc)
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
 	public String toString() {
-		return "Counts [+ve=" + positiveProportionCount + ", -ve="
-				+ negativeProportionCount + "]";
+		return "OccuranceCounts [positiveProportionCount=" + positiveProportionCount + ", negativeProportionCount="
+				+ negativeProportionCount + ", entropy=" + entropy + "]";
 	}
+
+	 
 
 }
