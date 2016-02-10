@@ -50,33 +50,47 @@ public class ID3Implementation {
 
 	}
 
-	private List<FeatureCounts<Integer>> extractFeatureCounts(List<FeatureVector> inputFeatures,
-			Map featuresToBeExcluded) {
-		List<FeatureCounts<Integer>> featureCounts = new ArrayList<FeatureCounts<Integer>>();
+	private <T> List<FeatureCounts<T>> extractFeatureCounts(List<FeatureVector> inputFeatures,
+			Map<String,String> featuresToBeExcluded) {
+		List<FeatureCounts<T>> featureCounts = new ArrayList<FeatureCounts<T>>();
 
 		/**
 		 * Load all headers in Counts.
 		 */
 		for (String featureKey : inputFeatures.get(0).getInputMap().keySet()) {
 			if (!featuresToBeExcluded.containsKey(featureKey)) {
-				featureCounts.add(new FeatureCounts<Integer>(featureKey));
+				featureCounts.add(new FeatureCounts<T>(featureKey));
 			}
 		}
 
 		/**
 		 * featureCounts now has one entry for each feature. Populate all Counts
-		 * for each feature.
+		 * for each feature. Makes sure that only the ones that are applicable for selected tree path are being considered in population of data.
 		 */
 
-		for (FeatureCounts<Integer> countEntry : featureCounts) {
-			for (FeatureVector featureVector : inputFeatures) {
-				if (!featuresToBeExcluded.containsKey(countEntry.getName())) {
-					Map<String, Integer> map = featureVector.getInputMap();
-					countEntry.incrementFeatureCounts(map.get(countEntry.getName()), featureVector.isClass());
+		for (FeatureVector featureVector : inputFeatures) {
+			boolean isFeatureVectorApplicable = true;
+			for (Map.Entry<String,String> entry: featuresToBeExcluded.entrySet()) {
+				if(!featureVector.getInputMap().get(entry.getKey()).equals(entry.getValue()))
+				{
+					isFeatureVectorApplicable=false;
 				}
 			}
+			if (isFeatureVectorApplicable) {
+				for (FeatureCounts<T> countEntry : featureCounts) {
+					if (!featuresToBeExcluded.containsKey(countEntry.getName())) {
+						Map<String, Integer> map = featureVector.getInputMap();
+						countEntry.incrementFeatureCounts((T) map.get(countEntry.getName()), featureVector.isClass());
+					}
+				}
+			}
+
+		}
+
+		for (FeatureCounts<T> countEntry : featureCounts) {
 			countEntry.populateOverallCounts();
 		}
+		System.out.println(featuresToBeExcluded.size());
 		return featureCounts;
 	}
 
@@ -84,13 +98,7 @@ public class ID3Implementation {
 		ID3Implementation predictor = new ID3Implementation();
 		List<FeatureVector> inputFeatureVectors = predictor.readInputFeatures(
 				predictor.getClass().getClassLoader().getResource("data_sets1/test_set.csv").getFile());
-
-		Map map = new HashMap();
-
-		List<FeatureCounts<Integer>> featureCounts = predictor.calculateInformationGain(inputFeatureVectors, map);
-		System.out.println(featureCounts);
-		predictor.getBestAttribute(featureCounts);
-		predictor.printTree("", predictor.getTreeUsingID3InformationGain(featureCounts, null, map));
+		predictor.printTree("", predictor.getTreeUsingID3InformationGain(inputFeatureVectors, null, new HashMap<String, String>()));
 	}
 
 	/**
@@ -100,8 +108,6 @@ public class ID3Implementation {
 	 * @return
 	 */
 	public <T> FeatureCounts<T> getBestAttribute(List<FeatureCounts<T>> counts) {
-		Collections.sort(counts);
-		System.out.println(counts);
 		return Collections.max(counts);
 	}
 
@@ -121,31 +127,42 @@ public class ID3Implementation {
 		}
 	}
 
-	public <T> DecisionNode<T> getTreeUsingID3InformationGain(List<FeatureCounts<T>> featureCounts,
-			DecisionNode<T> parent, Map map) {
-		if (parent == null) {
-			parent = new DecisionNode<T>(getBestAttribute(featureCounts));
+	/**
+	 * This method returns the Decision tree based on information gain
+	 * attribute.
+	 * 
+	 * @param featureCounts
+	 * @param parent
+	 * @param map
+	 * @return
+	 */
+	public <T> DecisionNode<T> getTreeUsingID3InformationGain(List<FeatureVector> inputFeatureVectors,
+			DecisionNode<T> parent, Map<String, T> map) {
+		List<FeatureCounts<T>> featureCounts = calculateInformationGain(inputFeatureVectors, map);
+		if (!featureCounts.isEmpty()) {
+			FeatureCounts<T> bestAttribute = null;
+			bestAttribute = getBestAttribute(featureCounts);
+				parent = new DecisionNode<T>(bestAttribute.getName());
+			for (Map.Entry<T, OccuranceCounts> entry : bestAttribute.getValueStatistics().entrySet()) {
+				map.put(bestAttribute.getName(), entry.getKey());
+				parent.getChildren().add(getTreeUsingID3InformationGain(inputFeatureVectors, parent, new HashMap<String, T>(map)));
+			}
 		}
-		System.out.println(parent);
 		return parent;
 	}
 
-	/*
-	 * public DecisionNode growTree(List<FeatureCounts> counts, FeatureCounts
-	 * target,FeatureCounts attributes) {
-	 * 
-	 * }
-	 */
 	/**
 	 * This method sets entropy in featureVectors sent.
+	 * 
+	 * @param <T>
 	 * 
 	 * @param inputFeatureVectors
 	 * @param map
 	 * @return
 	 */
-	public List<FeatureCounts<Integer>> calculateInformationGain(List<FeatureVector> inputFeatureVectors, Map map) {
-		List<FeatureCounts<Integer>> featureCounts = extractFeatureCounts(inputFeatureVectors, map);
-		for (FeatureCounts<Integer> feature : featureCounts) {
+	public <T> List<FeatureCounts<T>> calculateInformationGain(List<FeatureVector> inputFeatureVectors, Map map) {
+		List<FeatureCounts<T>> featureCounts = extractFeatureCounts(inputFeatureVectors, map);
+		for (FeatureCounts<T> feature : featureCounts) {
 			Utils.setEntropy(feature.getOverallCounts());
 			double gain = feature.getOverallCounts().getEntropy();
 			double modS = feature.getOverallCounts().getNegativeProportionCount()

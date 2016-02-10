@@ -1,5 +1,6 @@
 package com.decisiontree.common;
 
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -10,13 +11,14 @@ import java.util.List;
  */
 public class DecisionNode<T> {
 
-	private List<DecisionNode<T>> children;
+	private List<DecisionNode<T>> children = new LinkedList<DecisionNode<T>>();
 	private T valueChosen;
 	private String name;
 	private T result;
 	 
-	public DecisionNode(FeatureCounts<T> counts) {
-		this.name= counts.getName();
+	public DecisionNode(String name) {
+		this.name= name;
+		
 		
 	}
 	/**

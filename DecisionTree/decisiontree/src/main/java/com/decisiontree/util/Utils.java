@@ -15,7 +15,6 @@ public class Utils {
 		double positiveProb = (double)counts.getPositiveProportionCount()/total;
 		double negativeProb =(double) counts.getNegativeProportionCount()/total;
 		counts.setEntropy((double) (-positiveProb * log2(positiveProb)+ (-negativeProb * log2(negativeProb))));
-		System.out.println(counts);
 	}
 
 	
