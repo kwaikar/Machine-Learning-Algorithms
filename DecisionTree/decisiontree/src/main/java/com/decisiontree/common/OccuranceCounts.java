@@ -71,8 +71,8 @@ public class OccuranceCounts {
 	 */
 	@Override
 	public String toString() {
-		return "OccuranceCounts [positiveProportionCount=" + positiveProportionCount + ", negativeProportionCount="
-				+ negativeProportionCount + ", entropy=" + entropy + "]";
+		return "[+ve=" + positiveProportionCount + ", -ve="
+				+ negativeProportionCount + ", E=" + entropy + "]";
 	}
 
 	 

@@ -14,11 +14,12 @@ public class DecisionNode<T> {
 	private List<DecisionNode<T>> children = new LinkedList<DecisionNode<T>>();
 	private T valueChosen;
 	private String name;
-	private T result;
+	private Boolean  result;
+	private FeatureCounts<T> featureCount;
 	 
-	public DecisionNode(String name) {
-		this.name= name;
-		
+	public DecisionNode(FeatureCounts<T> featureCount) {
+		this.name= featureCount.getName();
+		this.featureCount = featureCount;
 		
 	}
 	/**
@@ -60,13 +61,13 @@ public class DecisionNode<T> {
 	/**
 	 * @return the result
 	 */
-	public T getResult() {
+	public Boolean getResult() {
 		return result;
 	}
 	/**
 	 * @param result the result to set
 	 */
-	public void setResult(T result) {
+	public void setResult(Boolean  result) {
 		this.result = result;
 	}
 	/* (non-Javadoc)
@@ -76,6 +77,18 @@ public class DecisionNode<T> {
 	public String toString() {
 		return "DecisionNode [children=" + children + ", valueChosen=" + valueChosen + ", name=" + name + ", result="
 				+ result + "]";
+	}
+	/**
+	 * @return the featureCount
+	 */
+	public FeatureCounts<T> getFeatureCount() {
+		return featureCount;
+	}
+	/**
+	 * @param featureCount the featureCount to set
+	 */
+	public void setFeatureCount(FeatureCounts<T> featureCount) {
+		this.featureCount = featureCount;
 	}
  
 	
