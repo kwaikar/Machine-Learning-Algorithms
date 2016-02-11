@@ -3,6 +3,8 @@ package com.decisiontree.common;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.math.util.MathUtils;
+
 /**
  * This class accumulates Feature counts for each of the feature.
  * 
@@ -129,7 +131,7 @@ public class FeatureCounts<T> implements Comparable<FeatureCounts<T>> {
 	 *            the informationGain to set
 	 */
 	public void setInformationGain(double informationGain) {
-		this.informationGain = informationGain;
+		this.informationGain = MathUtils.round(informationGain,15);
 	}
 
 }
