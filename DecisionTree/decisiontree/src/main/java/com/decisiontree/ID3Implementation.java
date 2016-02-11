@@ -37,6 +37,7 @@ public class ID3Implementation {
 	 * @throws Exception
 	 */
 	final static Logger logger = Logger.getLogger(ID3Implementation.class);
+
 	private List<FeatureVector> readInputFeatures(String filePath) throws Exception {
 		List<FeatureVector> inputFeaturesList = null;
 		File inputFile = new File(filePath);
@@ -97,9 +98,11 @@ public class ID3Implementation {
 	public static void main(String[] args) throws Exception {
 		ID3Implementation predictor = new ID3Implementation();
 		List<FeatureVector> inputFeatureVectors = predictor.readInputFeatures(
-				predictor.getClass().getClassLoader().getResource("data_sets1/training_set.csv").getFile());
+				predictor.getClass().getClassLoader().getResource("data_sets1/training_set.csv").getFile());/*
 		predictor.printTree("",
-				predictor.getTreeUsingID3InformationGain(inputFeatureVectors, null, new HashMap<String, String>()));
+				predictor.getTreeUsingID3InformationGain(inputFeatureVectors, null, new HashMap<String, String>(),false));*/
+		predictor.printTree("",
+				predictor.getTreeUsingID3InformationGain(inputFeatureVectors, null, new HashMap<String, String>(),true));
 	}
 
 	/**
@@ -119,8 +122,8 @@ public class ID3Implementation {
 	 * @param node
 	 */
 	public <T> void printTree(String tabsPrefix, DecisionNode<T> node) {
-		logger.info(tabsPrefix + node.getName() + "= " + node.getValueChosen() + " = "
-				+ (node.getResult() != null ? node.getResult() : "" + node.getFeatureCount().getOverallCounts().getEntropy()));
+		logger.info(tabsPrefix + node.getName() + "= " + node.getValueChosen() + " = " + (node.getResult() != null
+				? node.getResult() : "" + node.getFeatureCount().getOverallCounts().getEntropy()));
 		if (CollectionUtils.isNotEmpty(node.getChildren())) {
 			for (DecisionNode<T> child : node.getChildren()) {
 				printTree(tabsPrefix + "-", child);
@@ -138,11 +141,11 @@ public class ID3Implementation {
 	 * @return
 	 */
 	public <T> DecisionNode<T> getTreeUsingID3InformationGain(List<FeatureVector> inputFeatureVectors,
-			DecisionNode<T> parent, Map<String, T> map) {
+			DecisionNode<T> parent, Map<String, T> map, boolean useVarianceImpurityForGain) {
 		if (parent == null) {
 			parent = new DecisionNode<T>(new FeatureCounts<T>("ROOT"));
 		}
-		List<FeatureCounts<T>> featureCounts = calculateInformationGain(inputFeatureVectors, map);
+		List<FeatureCounts<T>> featureCounts = calculateInformationGain(inputFeatureVectors, map,useVarianceImpurityForGain);
 		if (!featureCounts.isEmpty()) {
 			FeatureCounts<T> bestAttribute = null;
 			bestAttribute = getBestAttribute(featureCounts);
@@ -155,7 +158,7 @@ public class ID3Implementation {
 				if (entry.getValue().getNegativeProportionCount() != 0
 						&& entry.getValue().getPositiveProportionCount() != 0) {
 					parent.getChildren().add(
-							getTreeUsingID3InformationGain(inputFeatureVectors, child, new HashMap<String, T>(map)));
+							getTreeUsingID3InformationGain(inputFeatureVectors, child, new HashMap<String, T>(map),useVarianceImpurityForGain));
 				} else if (entry.getValue().getNegativeProportionCount() == 0) {
 					child.setResult(true);
 					parent.getChildren().add(child);
@@ -177,17 +180,18 @@ public class ID3Implementation {
 	 * @param map
 	 * @return
 	 */
-	public <T> List<FeatureCounts<T>> calculateInformationGain(List<FeatureVector> inputFeatureVectors, Map map) {
+	public <T> List<FeatureCounts<T>> calculateInformationGain(List<FeatureVector> inputFeatureVectors, Map map,
+			boolean useVarianceImpurityForGain) {
 		List<FeatureCounts<T>> featureCounts = extractFeatureCounts(inputFeatureVectors, map);
 		for (FeatureCounts<T> feature : featureCounts) {
-			Utils.setEntropy(feature.getOverallCounts());
+			Utils.setEntropy(feature.getOverallCounts(),useVarianceImpurityForGain);
 			double gain = feature.getOverallCounts().getEntropy();
 			double modS = feature.getOverallCounts().getNegativeProportionCount()
 					+ feature.getOverallCounts().getPositiveProportionCount();
 			for (OccuranceCounts count : feature.getValueStatistics().values()) {
-				Utils.setEntropy(count);
-				gain -= ((count.getPositiveProportionCount() + count.getNegativeProportionCount()) / modS)
-						* count.getEntropy();
+				Utils.setEntropy(count,useVarianceImpurityForGain);
+					gain -= ((count.getPositiveProportionCount() + count.getNegativeProportionCount()) / modS)
+							* count.getEntropy();
 			}
 			feature.setInformationGain(gain);
 
