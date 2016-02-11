@@ -97,34 +97,84 @@ public class ID3Implementation {
 
 	public static void main(String[] args) throws Exception {
 		ID3Implementation predictor = new ID3Implementation();
-		List<FeatureVector> inputFeatureVectors = predictor.readInputFeatures(
-				predictor.getClass().getClassLoader().getResource("data_sets1/training_set.csv").getFile());
-		/*
-		 * DecisionNode treeRootWithVarianceImpurity =
-		 * predictor.getTreeUsingID3InformationGain(inputFeatureVectors, null,
-		 * new HashMap<String, String>(), false);
-		 */
+		// predictor.extractStatistics("data_sets1");
+		System.out.println();
+		predictor.extractStatistics("data_sets2");
 
-		DecisionNode treeRootUsingEntropy = predictor.getTreeUsingID3InformationGain(inputFeatureVectors, null,
+	}
+
+	/**
+	 * @param predictor
+	 * @param treeRootWithVarianceImpurity
+	 * @param treeRootUsingInfoGain
+	 * @throws Exception
+	 */
+	public void extractStatistics(String dataPrefix) throws Exception {
+		List<FeatureVector> inputFeatureVectors = readInputFeatures(
+				getClass().getClassLoader().getResource(dataPrefix + "/training_set.csv").getFile());
+
+		DecisionNode treeRootWithVarianceImpurity = getTreeUsingID3InformationGain(inputFeatureVectors, null,
 				new HashMap<String, String>(), false);
 
-		List<FeatureVector> testSet = predictor.readInputFeatures(
-				predictor.getClass().getClassLoader().getResource("data_sets1/test_set.csv").getFile());
+		DecisionNode treeRootUsingInfoGain = getTreeUsingID3InformationGain(inputFeatureVectors, null,
+				new HashMap<String, String>(), false);
+		printTree("-", treeRootUsingInfoGain);
+		String fileName = dataPrefix + "/test_set.csv";
+		double accuracy = getDataSetAccuracy(treeRootWithVarianceImpurity, fileName);
+		System.out.println(dataPrefix + ": Test set Accuracy (Variance Impurity) : " + accuracy);
+		accuracy = getDataSetAccuracy(treeRootUsingInfoGain, fileName);
+		System.out.println(dataPrefix + ": Test set Accuracy (information gain) : " + accuracy);
+
+		fileName = dataPrefix + "/validation_set.csv";
+		accuracy = getDataSetAccuracy(treeRootWithVarianceImpurity, fileName);
+		System.out.println(dataPrefix + ": Validation set Accuracy (Variance Impurity) : " + accuracy);
+		
+		accuracy = getDataSetAccuracy(treeRootUsingInfoGain, fileName);
+		System.out.println(dataPrefix + ": Validation set Accuracy (information gain): " + accuracy);
+
+		fileName = dataPrefix + "/training_set.csv";
+		accuracy = getDataSetAccuracy(treeRootUsingInfoGain, fileName);
+		System.out.println(dataPrefix + ": Training set Accuracy (information gain): " + accuracy);
+		accuracy = getDataSetAccuracy(treeRootWithVarianceImpurity, fileName);
+		System.out.println(dataPrefix + ": Training set Accuracy (Variance Impurity) : " + accuracy);
+	}
+
+	/**
+	 * @param predictor
+	 * @param treeRootUsingEntropy
+	 * @param fileName
+	 * @return
+	 * @throws Exception
+	 */
+	private double getDataSetAccuracy(DecisionNode treeRootUsingEntropy, String fileName) throws Exception {
+		List<FeatureVector> testSet = readInputFeatures(
+				this.getClass().getClassLoader().getResource(fileName).getFile());
+		int correctCounter = 0;
+		int count = 0;
 		for (FeatureVector featureVector : testSet) {
-			logger.info(predictor.isCorrect(featureVector, treeRootUsingEntropy));
+			logger.debug(++count);
+			if (count == 525) {
+				System.out.println();
+			}
+			if (isCorrect(featureVector, treeRootUsingEntropy)) {
+				correctCounter++;
+			}
 		}
+		double accuracy = (100 * (double) correctCounter / testSet.size());
+		return accuracy;
 	}
 
 	private <T> Boolean isCorrect(FeatureVector vector, DecisionNode<T> node) {
 		DecisionNode<T> temp = node;
 		while (CollectionUtils.isNotEmpty(temp.getChildren())) {
 			for (DecisionNode<T> current : temp.getChildren()) {
+				logger.debug(current.getName() + " :" + current.getChildren());
 				if (current.getValueChosen().equals(vector.getInputMap().get(current.getName()))) {
 					temp = current;
 				}
 			}
 		}
-		return (temp.getResult().equals(vector.isClass()==1?true:false));
+		return (temp.getResult().equals(vector.isClass() == 1 ? true : false));
 	}
 
 	/**
@@ -172,13 +222,19 @@ public class ID3Implementation {
 		if (!featureCounts.isEmpty()) {
 			FeatureCounts<T> bestAttribute = null;
 			bestAttribute = getBestAttribute(featureCounts);
+			if(bestAttribute.getInformationGain()!=0.0)
+			{
+			 
 			// logger.info(" "+bestAttribute.getName()+ " : "+featureCounts);
 			for (Map.Entry<T, OccuranceCounts> entry : bestAttribute.getValueStatistics().entrySet()) {
 
 				DecisionNode<T> child = new DecisionNode<T>(bestAttribute);
 				child.setValueChosen(entry.getKey());
 				map.put(bestAttribute.getName(), entry.getKey());
-
+				if(parent.getName().equalsIgnoreCase("XD") && child.getName().equalsIgnoreCase("XG"))
+				{
+					System.out.println();
+				}
 				if (entry.getValue().getNegativeProportionCount() != 0
 						&& entry.getValue().getPositiveProportionCount() != 0) {
 					parent.getChildren().add(getTreeUsingID3InformationGain(inputFeatureVectors, child,
@@ -190,6 +246,11 @@ public class ID3Implementation {
 					child.setResult(false);
 					parent.getChildren().add(child);
 				}
+			}
+			}
+			else
+			{
+				parent.setResult(false);	
 			}
 		}
 		return parent;
