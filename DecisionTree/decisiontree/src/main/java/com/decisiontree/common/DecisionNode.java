@@ -16,6 +16,7 @@ public class DecisionNode<T> {
 	private String name;
 	private Boolean  result;
 	private FeatureCounts<T> featureCount;
+	private int index;
 	 
 	public DecisionNode(FeatureCounts<T> featureCount) {
 		this.name= featureCount.getName();
@@ -90,6 +91,19 @@ public class DecisionNode<T> {
 	public void setFeatureCount(FeatureCounts<T> featureCount) {
 		this.featureCount = featureCount;
 	}
+	/**
+	 * @return the index
+	 */
+	public int getIndex() {
+		return index;
+	}
+	/**
+	 * @param number the index to set
+	 */
+	public void setIndex(int index) {
+		this.index = index;
+	}
  
+	
 	
  }
