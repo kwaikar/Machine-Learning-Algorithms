@@ -11,7 +11,7 @@ import org.apache.commons.math.util.MathUtils;
  * @author Kanchan
  *
  */
-public class FeatureCounts<T> implements Comparable<FeatureCounts<T>> {
+public class FeatureCounts<T> implements Comparable<FeatureCounts<T>>,   Cloneable {
 
 	private String name;
 	private Map<T, OccuranceCounts> valueStatistics = new HashMap<T, OccuranceCounts>();

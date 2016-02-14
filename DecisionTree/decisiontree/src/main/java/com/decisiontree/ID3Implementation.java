@@ -6,12 +6,14 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.math.util.MathUtils;
 import org.apache.log4j.Logger;
 
 import com.decisiontree.common.DecisionNode;
@@ -99,13 +101,8 @@ public class ID3Implementation {
 
 	public static void main(String[] args) throws Exception {
 		ID3Implementation predictor = new ID3Implementation();
-
-		// predictor.extractStatistics(predictor.getClass().getClassLoader().getResource("Data_Set_1/training_set.csv").getFile(),predictor.getClass().getClassLoader().getResource("Data_Set_1/validation_set.csv").getFile(),predictor.getClass().getClassLoader().getResource("Data_Set_1/test_set.csv").getFile());
-		// System.out.println();
-		predictor.extractStatistics(
-				predictor.getClass().getClassLoader().getResource("Data_Set_2/training_set.csv").getFile(),
-				predictor.getClass().getClassLoader().getResource("Data_Set_2/validation_set.csv").getFile(),
-				predictor.getClass().getClassLoader().getResource("Data_Set_2/test_set.csv").getFile());
+		predictor.extractStats(Integer.parseInt(args[0]), Integer.parseInt(args[1]), args[2], args[3], args[4],
+				Boolean.valueOf(args[5]));
 	}
 
 	/**
@@ -114,39 +111,201 @@ public class ID3Implementation {
 	 * @param treeRootUsingInfoGain
 	 * @throws Exception
 	 */
-	@SuppressWarnings("unchecked")
-	public void extractStatistics(String trainingSetPath, String testSetPath, String validationSetPath)
-			throws Exception {
+	public void extractStatistics(String trainingSetPath, String testSetPath, String validationSetPath,
+			boolean printTrees, int l, int k) throws Exception {
+
+		double accurancyInfoGainTrainingBefore;
+		double accurancyInfoGainValidationBefore;
+		double accurancyInfoGainTestBefore;
+
+		double accurancyVarImpurityTrainingBefore;
+		double accurancyVarImpurityValidationBefore;
+		double accurancyVarImpurityTestBefore;
+
 		List<FeatureVector> inputFeatureVectors = readInputFeatures(trainingSetPath);
+		DecisionNode treeRootUsingInfoGain = getTreeUsingID3InformationGain(inputFeatureVectors, null,
+				new HashMap<String, String>(), true);
+
+		System.out.println(
+				"--------------------------------------------------------------------------------------------------------");
+		System.out.println("Trained Model using ID3 Decision Tree algorithm: Information Gain Approach");
+		accurancyInfoGainTrainingBefore = getDataSetAccuracy(treeRootUsingInfoGain, trainingSetPath);
+		System.out.println("Accurancy on Training Data: " + accurancyInfoGainTrainingBefore);
+		accurancyInfoGainValidationBefore = getDataSetAccuracy(treeRootUsingInfoGain, validationSetPath);
+		System.out.println("Accurancy on Validation Data: " + accurancyInfoGainValidationBefore);
+		accurancyInfoGainTestBefore = getDataSetAccuracy(treeRootUsingInfoGain, testSetPath);
+		System.out.println("Accurancy on Test Data: " + accurancyInfoGainTestBefore);
+
+		List<Integer> ls = new LinkedList<Integer>();
+		for (int i = 25; i <= 250;) {
+			ls.add(i);
+			i = i + 25;
+		}
+		List<Integer> ks = new LinkedList<Integer>();
+		for (int i = 10; i > 0;) {
+			ks.add(i);
+			i = i - 1;
+		}
+		System.out.println("Statistics of Pruned Tree using Information Gain");
+		for (int i = 0; i < 10;) {
+			DecisionNode prunedTreeRootUsingInfoGain = getPrunedTree(treeRootUsingInfoGain, ls.get(i), ks.get(i),
+					validationSetPath);
+			double infoGainTrainingAccuracy = getDataSetAccuracy(prunedTreeRootUsingInfoGain, trainingSetPath);
+			double infoGainValidationAccuracy = getDataSetAccuracy(prunedTreeRootUsingInfoGain, validationSetPath);
+			double infoGainTestAccuracy = getDataSetAccuracy(prunedTreeRootUsingInfoGain, testSetPath);
+			System.out
+					.println(
+							"Training   " + ls.get(i) + "\t" + ks.get(i) + "\t" + infoGainTrainingAccuracy + "\t"
+									+ MathUtils.round((100
+											* ((double) (infoGainTrainingAccuracy - accurancyInfoGainTrainingBefore)
+													/ accurancyInfoGainTrainingBefore)),
+											2)
+									+ "%");
+			System.out.println("Validation " + ls.get(i) + "\t" + ks.get(i) + "\t" + infoGainValidationAccuracy + "\t"
+					+ MathUtils.round(100 * ((double) (infoGainValidationAccuracy - accurancyInfoGainValidationBefore)
+							/ accurancyInfoGainValidationBefore), 2)
+					+ "%");
+			System.out.println("Test       " + ls.get(i) + "\t" + ks.get(i) + "\t" + infoGainTestAccuracy + "\t"
+					+ MathUtils.round((100 * ((double) (infoGainTestAccuracy - accurancyInfoGainTestBefore)
+							/ accurancyInfoGainTestBefore)), 2)
+					+ "%");
+			i = i + 1;
+		}
+		System.out.println("==>");
+
+		System.out.println(
+				"--------------------------------------------------------------------------------------------------------");
+		System.out.println("Statistics of Variance Impurity Implementation");
+		DecisionNode treeRootWithVarianceImpurity = getTreeUsingID3InformationGain(inputFeatureVectors, null,
+				new HashMap<String, String>(), false);
+		accurancyVarImpurityTrainingBefore = getDataSetAccuracy(treeRootWithVarianceImpurity, trainingSetPath);
+		System.out.println("Accurancy on Training Data: " + accurancyVarImpurityTrainingBefore);
+		accurancyVarImpurityValidationBefore = getDataSetAccuracy(treeRootWithVarianceImpurity, validationSetPath);
+		System.out.println("Accurancy on Validation Data: " + accurancyVarImpurityValidationBefore);
+		accurancyVarImpurityTestBefore = getDataSetAccuracy(treeRootWithVarianceImpurity, testSetPath);
+		System.out.println("Accurancy on Test Data: " + accurancyVarImpurityTestBefore);
+
+		for (int i = 0; i < 10; i++) {
+
+			DecisionNode prunedTreeRootUsingVarianceImpurity = getPrunedTree(treeRootWithVarianceImpurity, ls.get(i),
+					ks.get(i), validationSetPath);
+			double trainingAccuracy = getDataSetAccuracy(prunedTreeRootUsingVarianceImpurity, trainingSetPath);
+			double validationAccuracy = getDataSetAccuracy(prunedTreeRootUsingVarianceImpurity, validationSetPath);
+			double testAccuracy = getDataSetAccuracy(prunedTreeRootUsingVarianceImpurity, testSetPath);
+			System.out.println("Training   " + ls.get(i) + "\t" + ks.get(i) + "\t" + trainingAccuracy + "\t"
+					+ MathUtils.round(100 * ((double) (trainingAccuracy - accurancyVarImpurityTrainingBefore)
+							/ accurancyVarImpurityTrainingBefore), 2)
+					+ "%");
+			System.out.println("Validation " + ls.get(i) + "\t" + ks.get(i) + "\t" + validationAccuracy + "\t"
+					+ MathUtils.round(100 * ((double) (validationAccuracy - accurancyVarImpurityValidationBefore)
+							/ accurancyVarImpurityValidationBefore), 2)
+					+ "%");
+			System.out.println("Test       " + ls.get(i) + "\t" + ks.get(i) + "\t" + testAccuracy + "\t"
+					+ MathUtils.round(100 * ((double) (testAccuracy - accurancyVarImpurityTestBefore)
+							/ accurancyVarImpurityTestBefore), 2)
+					+ "%");
+			i = i + 1;
+		}
+	}
+
+	/**
+	 * @param predictor
+	 * @param treeRootWithVarianceImpurity
+	 * @param treeRootUsingInfoGain
+	 * @throws Exception
+	 */
+	public void extractStats(int l, int k, String trainingSetPath, String testSetPath, String validationSetPath,
+			boolean printTrees) throws Exception {
+
+		double accurancyInfoGainTrainingBefore;
+		double accurancyInfoGainValidationBefore;
+		double accurancyInfoGainTestBefore;
+
+		double accurancyVarImpurityTrainingBefore;
+		double accurancyVarImpurityValidationBefore;
+		double accurancyVarImpurityTestBefore;
+
+		StringBuilder infoGain = new StringBuilder();
+		StringBuilder infoGainPruned = new StringBuilder();
+		StringBuilder varianceImpurity = new StringBuilder();
+		StringBuilder varianceImpurityPruned = new StringBuilder();
+
+		List<FeatureVector> inputFeatureVectors = readInputFeatures(trainingSetPath);
+		DecisionNode treeRootUsingInfoGain = getTreeUsingID3InformationGain(inputFeatureVectors, null,
+				new HashMap<String, String>(), true);
+
+		System.out.println(
+				"--------------------------------------------------------------------------------------------------------");
+		System.out.println("Trained Model using ID3 Decision Tree algorithm: Information Gain Approach");
+		accurancyInfoGainTrainingBefore = getDataSetAccuracy(treeRootUsingInfoGain, trainingSetPath);
+		System.out.println("Accurancy on Training Data: " + accurancyInfoGainTrainingBefore);
+		accurancyInfoGainValidationBefore = getDataSetAccuracy(treeRootUsingInfoGain, validationSetPath);
+		System.out.println("Accurancy on Validation Data: " + accurancyInfoGainValidationBefore);
+		accurancyInfoGainTestBefore = getDataSetAccuracy(treeRootUsingInfoGain, testSetPath);
+		System.out.println("Accurancy on Test Data: " + accurancyInfoGainTestBefore);
+
+		System.out.println("Initiating Pruning for L="+l+" & K="+k);
+		DecisionNode prunedTreeRootUsingInfoGain = getPrunedTree(treeRootUsingInfoGain, l, k, validationSetPath);
+		System.out.println("Pruned Tree with L=" + l + " & K=" + k);
+		System.out.println("Pruned Tree Accurancy on Training Data: "
+				+ getDataSetAccuracy(prunedTreeRootUsingInfoGain, trainingSetPath));
+		System.out.println("Pruned Tree Accurancy on Validation Data: "
+				+ getDataSetAccuracy(prunedTreeRootUsingInfoGain, validationSetPath));
+		System.out.println(
+				"Pruned Tree Accurancy on Test Data: " + getDataSetAccuracy(prunedTreeRootUsingInfoGain, testSetPath));
+		System.out.println(
+				"--------------------------------------------------------------------------------------------------------");
 
 		DecisionNode treeRootWithVarianceImpurity = getTreeUsingID3InformationGain(inputFeatureVectors, null,
 				new HashMap<String, String>(), false);
 
-		DecisionNode treeRootUsingInfoGain = getTreeUsingID3InformationGain(inputFeatureVectors, null,
-				new HashMap<String, String>(), false);
-		// printTree("-", treeRootUsingInfoGain);
-		getPrunedTree(treeRootUsingInfoGain, 100, 10, validationSetPath);
-		// printAccuracy(treeRootWithVarianceImpurity, treeRootUsingInfoGain,
-		// testSetPath);
-		// printAccuracy(treeRootWithVarianceImpurity, treeRootUsingInfoGain,
-		// validationSetPath);
-		// printAccuracy(treeRootWithVarianceImpurity, treeRootUsingInfoGain,
-		// trainingSetPath);
-	}
+		System.out.println(
+				"--------------------------------------------------------------------------------------------------------");
+		System.out.println("Trained Model using ID3 Decision Tree algorithm: Variance Impurity Approach");
+		accurancyVarImpurityTrainingBefore = getDataSetAccuracy(treeRootWithVarianceImpurity, trainingSetPath);
+		System.out.println("Accurancy on Training Data: " + accurancyVarImpurityTrainingBefore);
+		accurancyVarImpurityValidationBefore = getDataSetAccuracy(treeRootWithVarianceImpurity, validationSetPath);
+		System.out.println("Accurancy on Validation Data: " + accurancyVarImpurityValidationBefore);
+		accurancyVarImpurityTestBefore = getDataSetAccuracy(treeRootWithVarianceImpurity, testSetPath);
+		System.out.println("Accurancy on Test Data: " + accurancyVarImpurityTestBefore);
 
-	/**
-	 * @param treeRootWithVarianceImpurity
-	 * @param treeRootUsingInfoGain
-	 * @param fileName
-	 * @throws Exception
-	 */
-	public <T> void printAccuracy(DecisionNode<T> treeRootWithVarianceImpurity, DecisionNode<T> treeRootUsingInfoGain,
-			String fileName) throws Exception {
-		double accuracy;
-		accuracy = getDataSetAccuracy(treeRootUsingInfoGain, fileName);
-		System.out.println(fileName + ":Accuracy (information gain): " + accuracy);
-		accuracy = getDataSetAccuracy(treeRootWithVarianceImpurity, fileName);
-		System.out.println(fileName + ":Accuracy (Variance Impurity) : " + accuracy);
+		DecisionNode prunedTreeRootUsingVarianceImpurity = getPrunedTree(treeRootUsingInfoGain, l, k,
+				validationSetPath);
+		System.out.println("Pruned Tree with L=" + l + " & K=" + k);
+
+		System.out.println("Pruned Tree Accurancy on Training Data: "
+				+ getDataSetAccuracy(prunedTreeRootUsingVarianceImpurity, trainingSetPath));
+		System.out.println("Pruned Tree Accurancy on Validation Data: "
+				+ getDataSetAccuracy(prunedTreeRootUsingVarianceImpurity, validationSetPath));
+		System.out.println("Pruned Tree Accurancy on Test Data: "
+				+ getDataSetAccuracy(prunedTreeRootUsingVarianceImpurity, testSetPath));
+		System.out.println(
+				"--------------------------------------------------------------------------------------------------------");
+
+		if (printTrees) {
+			File infoGainFile = new File("Decision Tree Information Gain Baseline.txt");
+			printTree("-", treeRootUsingInfoGain, infoGain);
+			FileUtils.write(infoGainFile, infoGain.toString().replaceAll("\n\n", "\n"));
+
+			File infoGainPrunedFile = new File("Decision Tree Information Gain - Pruned.txt");
+			printTree("-", prunedTreeRootUsingInfoGain, infoGainPruned);
+			FileUtils.write(infoGainPrunedFile, infoGainPruned.toString().replaceAll("\n\n", "\n"));
+
+			File varImpurityFile = new File("Decision Tree Variance Impurity Baseline.txt");
+			printTree("-", treeRootWithVarianceImpurity, varianceImpurity);
+			FileUtils.write(varImpurityFile, varianceImpurity.toString().replaceAll("\n\n", "\n"));
+
+			File varImpurityPrunedFile = new File("Decision Tree Variance Impurity - Pruned.txt");
+			printTree("-", prunedTreeRootUsingVarianceImpurity, varianceImpurityPruned);
+			FileUtils.write(varImpurityPrunedFile, varianceImpurityPruned.toString().replaceAll("\n\n", "\n"));
+			System.out.println("Decision Trees Written at following location");
+			System.out.println(infoGainFile.getAbsolutePath());
+			System.out.println(infoGainPrunedFile.getAbsolutePath());
+			System.out.println(varImpurityFile.getAbsolutePath());
+			System.out.println(varImpurityPrunedFile.getAbsolutePath());
+
+		}
+
 	}
 
 	/**
@@ -156,7 +315,7 @@ public class ID3Implementation {
 	 * @return
 	 * @throws Exception
 	 */
-	private double getDataSetAccuracy(DecisionNode treeRootUsingEntropy, String fileName) throws Exception {
+	private <T> double getDataSetAccuracy(DecisionNode<T> treeRootUsingEntropy, String fileName) throws Exception {
 		List<FeatureVector> testSet = readInputFeatures(fileName);
 		int correctCounter = 0;
 		for (FeatureVector featureVector : testSet) {
@@ -180,12 +339,12 @@ public class ID3Implementation {
 			throws Exception {
 
 		Double originalTreeAccuracy = getDataSetAccuracy(dTree, validationSetPath);
-		System.out.println("Accuracy before Pruning:" + originalTreeAccuracy);
 		DecisionNode<T> dBest = dTree;
 		for (int i = 1; i <= l; i++) {
-			DecisionNode<T> dHat = dTree;
+			DecisionNode<T> dHat = dTree.clone();
 
 			int m = (int) (Math.random() * k);
+			System.out.println("Iteration : "+ i);
 			for (int j = 1; j <= m; j++) {
 				int maxIndex = assignIndexToNonLeafNodesAndReturnMaxIndex(dHat, 0);
 				int p = (int) (Math.random() * maxIndex);
@@ -195,12 +354,12 @@ public class ID3Implementation {
 						.getFeatureCount().getOverallCounts().getNegativeProportionCount());
 				Double prunedTreeAccuracy = getDataSetAccuracy(dHat, validationSetPath);
 				if (prunedTreeAccuracy > originalTreeAccuracy) {
-					dBest = dHat;
+					dBest = dHat.clone();
 					originalTreeAccuracy = prunedTreeAccuracy;
 				}
 			}
+			dHat = null;
 		}
-		System.out.println("Accuracy after Pruning:" + originalTreeAccuracy);
 		return dBest;
 	}
 
@@ -335,12 +494,14 @@ public class ID3Implementation {
 	 * @param tabsPrefix
 	 * @param node
 	 */
-	public <T> void printTree(String tabsPrefix, DecisionNode<T> node) {
-		logger.info(tabsPrefix + node.getName() + "= " + node.getValueChosen() + " = " + (node.getResult() != null
-				? node.getResult() : "" + "(" + node.getIndex() + ")" + node.getFeatureCount().getOverallCounts()));
+	public <T> void printTree(String tabsPrefix, DecisionNode<T> node, StringBuilder sb) {
+		if(!node.getName().contains("ROOT")){
+		sb.append(tabsPrefix + node.getName() + " = " + node.getValueChosen() + " : "
+				+ (node.getResult() != null ? node.getResult() : "" + "\n"));
+		}
 		if (CollectionUtils.isNotEmpty(node.getChildren())) {
 			for (DecisionNode<T> child : node.getChildren()) {
-				printTree(tabsPrefix + "-", child);
+				printTree(tabsPrefix + "-", child, sb.append("\n"));
 			}
 		}
 	}

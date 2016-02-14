@@ -1,7 +1,10 @@
 package com.decisiontree.common;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  * This node represents
@@ -9,7 +12,7 @@ import java.util.List;
  * @author Kanchan Waikar Date Created : 12:01:20 AM
  *
  */
-public class DecisionNode<T> {
+public class DecisionNode<T> implements Cloneable {
 
 	private List<DecisionNode<T>> children = new LinkedList<DecisionNode<T>>();
 	private T valueChosen;
@@ -104,6 +107,19 @@ public class DecisionNode<T> {
 		this.index = index;
 	}
  
-	
+	 public DecisionNode<T>  clone() throws CloneNotSupportedException {
+		DecisionNode<T> clone=new DecisionNode<T>(this.featureCount);
+		clone.valueChosen= valueChosen;
+		clone.index=index;
+		clone.result=result;
+		List<DecisionNode<T>> children = new ArrayList<DecisionNode<T>>();
+		if(CollectionUtils.isNotEmpty(getChildren())){
+		for (DecisionNode<T> decisionNode :  getChildren()) {
+			children.add((DecisionNode<T>)decisionNode.clone());
+		}
+		clone.setChildren(children);
+		}
+		return clone;
+	}
 	
  }
