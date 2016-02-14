@@ -14,7 +14,6 @@ import java.util.Queue;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.math.util.MathUtils;
-import org.apache.log4j.Logger;
 
 import com.decisiontree.common.DecisionNode;
 import com.decisiontree.common.FeatureCounts;
@@ -40,7 +39,6 @@ public class ID3Implementation {
 	 * @return
 	 * @throws Exception
 	 */
-	final static Logger logger = Logger.getLogger(ID3Implementation.class);
 
 	private List<FeatureVector> readInputFeatures(String filePath) throws Exception {
 		List<FeatureVector> inputFeaturesList = null;
@@ -171,7 +169,6 @@ public class ID3Implementation {
 					+ "%");
 			i = i + 1;
 		}
-		System.out.println("==>");
 
 		System.out.println(
 				"--------------------------------------------------------------------------------------------------------");
@@ -284,19 +281,19 @@ public class ID3Implementation {
 
 		if (printTrees) {
 			File infoGainFile = new File("Decision Tree Information Gain Baseline.txt");
-			printTree("-", treeRootUsingInfoGain, infoGain);
+			printTree("", treeRootUsingInfoGain, infoGain);
 			FileUtils.write(infoGainFile, infoGain.toString().replaceAll("\n\n", "\n"));
 
 			File infoGainPrunedFile = new File("Decision Tree Information Gain - Pruned.txt");
-			printTree("-", prunedTreeRootUsingInfoGain, infoGainPruned);
+			printTree("", prunedTreeRootUsingInfoGain, infoGainPruned);
 			FileUtils.write(infoGainPrunedFile, infoGainPruned.toString().replaceAll("\n\n", "\n"));
 
 			File varImpurityFile = new File("Decision Tree Variance Impurity Baseline.txt");
-			printTree("-", treeRootWithVarianceImpurity, varianceImpurity);
+			printTree("", treeRootWithVarianceImpurity, varianceImpurity);
 			FileUtils.write(varImpurityFile, varianceImpurity.toString().replaceAll("\n\n", "\n"));
 
 			File varImpurityPrunedFile = new File("Decision Tree Variance Impurity - Pruned.txt");
-			printTree("-", prunedTreeRootUsingVarianceImpurity, varianceImpurityPruned);
+			printTree("", prunedTreeRootUsingVarianceImpurity, varianceImpurityPruned);
 			FileUtils.write(varImpurityPrunedFile, varianceImpurityPruned.toString().replaceAll("\n\n", "\n"));
 			System.out.println("Decision Trees Written at following location");
 			System.out.println(infoGainFile.getAbsolutePath());
@@ -469,7 +466,6 @@ public class ID3Implementation {
 		DecisionNode<T> temp = node;
 		while (CollectionUtils.isNotEmpty(temp.getChildren())) {
 			for (DecisionNode<T> current : temp.getChildren()) {
-				logger.debug(current.getName() + " :" + current.getChildren());
 				if (current.getValueChosen().equals(vector.getInputMap().get(current.getName()))) {
 					temp = current;
 				}
