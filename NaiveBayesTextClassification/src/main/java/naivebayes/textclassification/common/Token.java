@@ -2,7 +2,15 @@ package naivebayes.textclassification.common;
 
 import java.util.HashMap;
 import java.util.Map;
-
+/**
+ * This class maintains two Maps for each instance.
+ * 		1.  How many times a word has appeared for given class.
+ * 		2.  Conditional Probabilities for each of the Class.
+ * 
+ * @author Kanchan Waikar
+ * Date Created : Mar 15, 2016 - 4:08:25 PM
+ *
+ */
 public class Token {
 
 	private String token;

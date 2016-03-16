@@ -15,7 +15,11 @@ import naivebayes.textclassification.common.ClassificationClass;
 import naivebayes.textclassification.common.Token;
 
 /**
- * Hello world!
+ * This implementation of Naive Bayes Text Classifier Uses laplace smoothing and
+ * also uses stop words list in order see whether prediction is improving or
+ * not.
+ * 
+ * @author Kanchan Waikar Date Created : Mar 15, 2016 - 6:09:12 PM
  *
  */
 public class NaiveBayesClassifier {
@@ -38,12 +42,19 @@ public class NaiveBayesClassifier {
 		tokens = new HashMap<String, Token>();
 		classMap = new HashMap<String, ClassificationClass>();
 		if (stopWordsFile != null && stopWordsFile.exists()) {
-			stopWordsList = new HashSet(
+			stopWordsList = new HashSet<String>(
 					Arrays.asList(FileUtils.readFileToString(stopWordsFile).split(SIMPLE_TOKENIZER_REGEX)));
 			System.out.println("Stopwords File found: Loaded " + stopWordsList.size() + " stop words in memory");
 		}
 	}
 
+	/**
+	 * Accepts input Directory path and trains a Naive Bayes In memory model for
+	 * doing Text classification.
+	 * 
+	 * @param path
+	 * @throws IOException
+	 */
 	private void trainModel(String path) throws IOException {
 		File parentFolder = new File(path);
 		if (parentFolder.exists()) {
@@ -54,7 +65,7 @@ public class NaiveBayesClassifier {
 				if (classDirectory.isDirectory()) {
 					String classOfData = classDirectory.getName();
 					ClassificationClass cls = new ClassificationClass(classOfData);
-					System.out.println(classDirectory.getAbsolutePath());
+					System.out.println("\t" + classDirectory.getAbsolutePath());
 
 					totalNumDocs += classDirectory.listFiles().length;
 					cls.setDocumentCount(classDirectory.listFiles().length);
@@ -67,11 +78,17 @@ public class NaiveBayesClassifier {
 						for (String token : input) {
 							if (StringUtils.isNotBlank(token) && !stopWordsList.contains(token)) {
 								termCount++;
+								/**
+								 * Build token counts Map.
+								 */
 								buildVocabulary(token.trim(), classOfData);
 							}
 						}
 					}
 					cls.setTokenCount(termCount);
+					/**
+					 * Maintain aggregated Class level counts.
+					 */
 					classMap.put(classOfData, cls);
 
 				} else {
@@ -93,20 +110,7 @@ public class NaiveBayesClassifier {
 			 * conditional probability for each of the Token found.
 			 */
 
-			for (Token token : tokens.values()) {
-				Map<String, Integer> counts = token.getClassOccuranceCounts();
-				for (Map.Entry<String, Integer> entry : counts.entrySet()) {
-					String classOfToken = entry.getKey();
-					ClassificationClass cls = classMap.get(classOfToken);
-					/**
-					 * Since the exercise asks for laplace smoothing, we must
-					 * add vocabulary size in the denominator
-					 */
-					int nonClassCounts = tokens.size() + cls.getTokenCount();
-					int addOneTermCount = entry.getValue() + 1;
-					token.setConditionalProbability(classOfToken, ((double) (addOneTermCount) / nonClassCounts));
-				}
-			}
+			setConditionalProbabilitiesForTokens(tokens);
 
 		} else {
 			System.out.println("Invalid directory structure. Please provide path of the directory that contains"
@@ -116,35 +120,68 @@ public class NaiveBayesClassifier {
 	}
 
 	/**
+	 * This method sets conditional probabilities on input token map.
+	 * 
+	 * @param tokens
+	 */
+	public void setConditionalProbabilitiesForTokens(Map<String, Token> tokens) {
+		for (Token token : tokens.values()) {
+			Map<String, Integer> counts = token.getClassOccuranceCounts();
+			for (Map.Entry<String, Integer> entry : counts.entrySet()) {
+				String classOfToken = entry.getKey();
+				ClassificationClass cls = classMap.get(classOfToken);
+
+				/**
+				 * Numerator is number of occurrences of the token and one added
+				 * to account for laplace smoonthing.
+				 */
+				int addOneTermCount = entry.getValue() + 1;
+				/**
+				 * Since the exercise asks for Laplace smoothing, we must add
+				 * vocabulary size in the denominator
+				 */
+
+				int nonClassCounts = tokens.size() + cls.getTokenCount();
+				token.setConditionalProbability(classOfToken, ((double) (addOneTermCount) / nonClassCounts));
+			}
+		}
+	}
+
+	/**
 	 * This method loops through all the files from given path and prints the
 	 * accuracy of the match. The directory structure expected is same as that
 	 * 
-	 * @param path
-	 * @return
+	 * @param path - Meta Path
+	 * 		Input is expected to have the directory structure  {path}/{className}/file.txt
+	 * @return - Accuracy of the data on which prediction is being tested.
 	 * @throws IOException
 	 */
 	public double calculateAccuracy(String path) throws IOException {
 		double accuracy = 0;
 		File parentFolder = new File(path);
-		System.out.println("Calculating accuracy on : " + path);
 		if (parentFolder.exists()) {
 			File[] classes = parentFolder.listFiles();
 			int totalDocs = 0;
 			int correctPredictions = 0;
+			/**
+			 * Loop through all the available directories - here each directory name is expected to be class name.
+			 */
 			for (File classDirectory : classes) {
-				System.out.println(classDirectory.getAbsolutePath());
+				System.out.println("\t" + classDirectory.getAbsolutePath());
 				if (classDirectory.isDirectory()) {
 
+					/**
+					 * get Class Name, predict class on each of the file.
+					 */
 					String classOfData = classDirectory.getName();
-
 					for (File classifiedFile : classDirectory.listFiles()) {
 						totalDocs++;
-						String classPredicted = predictedClass(classifiedFile);
+						String classPredicted = predictClass(classifiedFile);
+						/**
+						 * Verify if both the classes are matching or not.
+						 */
 						if (classPredicted.equals(classOfData)) {
 							correctPredictions++;
-						} else {
-							// System.out.println(classifiedFile.getName()+ " :
-							// "+classPredicted);
 						}
 					}
 				}
@@ -156,42 +193,60 @@ public class NaiveBayesClassifier {
 		return (accuracy);
 	}
 
-	public String predictedClass(File document) throws IOException {
-		String[] input = FileUtils.readFileToString(document).split(SIMPLE_TOKENIZER_REGEX);
-		String maximizedClass = null;
-		Double maximizedScore = null;
-		for (ClassificationClass cls : classMap.values()) {
+	/**
+	 * This method needs to be called only on trained model. This method
+	 * predicts the Class of input document.
+	 * 
+	 * @param document
+	 * @return
+	 * @throws IOException
+	 */
+	public String predictClass(File document) throws IOException {
+		if (classMap.size() > 0 && tokens.size() > 0) {
+			String[] input = FileUtils.readFileToString(document).split(SIMPLE_TOKENIZER_REGEX);
+			String maximizedClass = null;
+			Double maximizedScore = null;
+			for (ClassificationClass cls : classMap.values()) {
 
-			double tempScore = log(cls.getPrior());
-			for (String token : input) {
-				if (StringUtils.isNotBlank(token) && !stopWordsList.contains(token)) {
-					Token tokenFromMap = tokens.get(token);
-					if (tokenFromMap != null && tokenFromMap.getConditionalProbabilities().get(cls.getName()) != null) {
-						/**
-						 * Known word. use precalculated conditional
-						 * probability.
-						 */
-						tempScore += log(tokenFromMap.getConditionalProbabilities().get(cls.getName()));
-					} else {
-						/**
-						 * unknown word - calculate the conditional probability.
-						 */
-						int nonClassCounts = tokens.size() + cls.getTokenCount();
-						tempScore += log((double) (1) / nonClassCounts);
+				/**
+				 * Initialize tempScore with Class Prior.
+				 */
+				double tempScore = log(cls.getPrior());
+				for (String token : input) {
+					if (StringUtils.isNotBlank(token) && !stopWordsList.contains(token)) {
+						Token tokenFromMap = tokens.get(token);
+						if (tokenFromMap != null
+								&& tokenFromMap.getConditionalProbabilities().get(cls.getName()) != null) {
+							/**
+							 * Known word. use precalculated conditional
+							 * probability - Likelihood probability
+							 */
+							tempScore += log(tokenFromMap.getConditionalProbabilities().get(cls.getName()));
+						} else {
+							/**
+							 * unknown word - calculate the conditional
+							 * probability.
+							 */
+							int nonClassCounts = tokens.size() + cls.getTokenCount();
+							tempScore += log((double) (1) / nonClassCounts);
+						}
+
 					}
-			
-
 				}
-			}		if (maximizedScore == null) {
-				maximizedScore = tempScore;
-				maximizedClass = cls.getName();
+				if (maximizedScore == null) {
+					maximizedScore = tempScore;
+					maximizedClass = cls.getName();
+				}
+				if (tempScore > maximizedScore) {
+					maximizedClass = cls.getName();
+					maximizedScore = tempScore;
+				}
 			}
-			if (tempScore > maximizedScore) {
-				maximizedClass = cls.getName();
-				maximizedScore = tempScore;
-			}
+			return maximizedClass;
+		} else {
+			new NullPointerException("Null Trained Model : Please Train Model Before predicting class for document.");
+			return null;
 		}
-		return maximizedClass;
 
 	}
 
@@ -210,12 +265,21 @@ public class NaiveBayesClassifier {
 	 */
 	private void buildVocabulary(String text, String classOfToken) {
 		if (text != null && StringUtils.isNotBlank(text)) {
+			/**
+			 * Get the Token
+			 */
 			Token token = tokens.get(text);
 			if (token == null) {
 				token = new Token(text);
 			}
 			Integer count = token.getClassOccuranceCounts().get(classOfToken);
+			/**
+			 * Increment the occurance count of the token for given class.
+			 */
 			token.getClassOccuranceCounts().put(classOfToken, count == null ? 1 : ++count);
+			/**
+			 * Reinstate the token in the map.
+			 */
 			tokens.put(text, token);
 		}
 	}
@@ -236,7 +300,6 @@ public class NaiveBayesClassifier {
 		classifier.calculateAccuracy(classifier.getClass().getResource("/train").getFile());
 		System.out.println("Prediction on Test data: ");
 		classifier.calculateAccuracy(classifier.getClass().getResource("/test").getFile());
- 
 
 	}
 }

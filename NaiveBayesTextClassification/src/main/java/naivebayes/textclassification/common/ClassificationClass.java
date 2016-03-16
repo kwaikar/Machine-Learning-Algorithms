@@ -2,7 +2,6 @@ package naivebayes.textclassification.common;
 
 public class ClassificationClass {
 	private String name;
-
 	private int documentCount = 0;
 	private int tokenCount = 0;
 	private double prior = 0.0;
