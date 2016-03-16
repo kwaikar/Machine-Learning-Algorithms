@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
@@ -286,20 +287,33 @@ public class NaiveBayesClassifier {
 
 	public static void main(String[] args) throws IOException {
 		NaiveBayesClassifier classifier = new NaiveBayesClassifier();
-
 		classifier.initialize(null);
-		classifier.trainModel(classifier.getClass().getResource("/train").getFile());
+
+		Scanner sc = new Scanner(System.in);
+		System.out.println("Please enter path to training folder: ");
+		String path = sc.nextLine();
+		if (new File(path).isDirectory()) {
+
+		classifier.trainModel(path);
 		System.out.println("Prediction on Training data: ");
-		classifier.calculateAccuracy(classifier.getClass().getResource("/train").getFile());
+		classifier.calculateAccuracy(path);
+		System.out.println("Please provide path to Test folder on which prediction needs to be made:");
+		String testPath  = sc.nextLine();
+		System.out.println("Prediction on Test data: ");
+		classifier.calculateAccuracy(testPath);
+
+		System.out.println("Please provide path to stopWords file:");
+		String stopWordsFile  = sc.nextLine();
+		classifier.initialize(new File(stopWordsFile));
+		classifier.trainModel(path);
+		System.out.println("Prediction on Training data: ");
+		classifier.calculateAccuracy(path);
 		System.out.println("Prediction on Test data: ");
 		classifier.calculateAccuracy(classifier.getClass().getResource("/test").getFile());
-
-		classifier.initialize(new File(classifier.getClass().getResource("/stopwords.txt").getFile()));
-		classifier.trainModel(classifier.getClass().getResource("/train").getFile());
-		System.out.println("Prediction on Training data: ");
-		classifier.calculateAccuracy(classifier.getClass().getResource("/train").getFile());
-		System.out.println("Prediction on Test data: ");
-		classifier.calculateAccuracy(classifier.getClass().getResource("/test").getFile());
-
+		} else {
+			System.out.println(
+					"Invalid folder path. Please make sure that you share path to the directory in which ham and spam folder exist");
+		}
+		sc.close();
 	}
 }

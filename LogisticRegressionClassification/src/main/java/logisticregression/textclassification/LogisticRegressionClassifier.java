@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
@@ -39,8 +40,8 @@ public class LogisticRegressionClassifier {
 		tokenCounter = 0;
 		tokens = new LinkedHashMap<String, Token>();
 		if (stopWordsFile != null && stopWordsFile.exists()) {
-			stopWordsList = new HashSet<String>(Arrays.asList(FileUtils.readFileToString(stopWordsFile)
-					.split(SIMPLE_TOKENIZER_REGEX)));
+			stopWordsList = new HashSet<String>(
+					Arrays.asList(FileUtils.readFileToString(stopWordsFile).split(SIMPLE_TOKENIZER_REGEX)));
 			System.out.println("Stopwords File found: Loaded " + stopWordsList.size() + " stop words in memory");
 		}
 	}
@@ -319,23 +320,34 @@ public class LogisticRegressionClassifier {
 
 	public static void main(String[] args) throws IOException {
 		LogisticRegressionClassifier classifier = new LogisticRegressionClassifier();
-
+		System.out.println("Please provide path to the input file:");
 		classifier.initialize(null);
-		double[] weights = classifier.trainModel(classifier.getClass().getResource("/train").getFile());
-		for (double d : weights) {
-			System.out.print(d + "|");
+		Scanner sc = new Scanner(System.in);
+		String path = sc.nextLine();
+		if (new File(path).isDirectory()) {
+			double[] weights = classifier.trainModel(path);
+			for (double d : weights) {
+				System.out.print(d + "|");
+			}
+			System.out.println("Prediction on Training data: ");
+			classifier.calculateAccuracy(path, weights);
+			System.out.println("Prediction on Test data: ");
+			System.out.println("Please provide path to Test folder on which prediction needs to be made:");
+			String testPath  = sc.nextLine();
+			classifier.calculateAccuracy(testPath, weights);
+
+			System.out.println("Please provide path to stopWords file:");
+			String stopWordsFile  = sc.nextLine();
+			classifier.initialize(new File(stopWordsFile));
+			weights = classifier.trainModel(path);
+			System.out.println("Prediction on Training data: ");
+			classifier.calculateAccuracy(path, weights);
+			System.out.println("Prediction on Test data: ");
+			classifier.calculateAccuracy(classifier.getClass().getResource("/test").getFile(), weights);
+		} else {
+			System.out.println(
+					"Invalid folder path. Please make sure that you share path to the directory in which ham and spam folder exist");
 		}
-		System.out.println("Prediction on Training data: ");
-		classifier.calculateAccuracy(classifier.getClass().getResource("/train").getFile(), weights);
-		System.out.println("Prediction on Test data: ");
-		classifier.calculateAccuracy(classifier.getClass().getResource("/test").getFile(), weights);
-
-		classifier.initialize(new File(classifier.getClass().getResource("/stopwords.txt").getFile()));
-		weights = classifier.trainModel(classifier.getClass().getResource("/train").getFile());
-		System.out.println("Prediction on Training data: ");
-		classifier.calculateAccuracy(classifier.getClass().getResource("/train").getFile(), weights);
-		System.out.println("Prediction on Test data: ");
-		classifier.calculateAccuracy(classifier.getClass().getResource("/test").getFile(), weights);
-
+		sc.close();
 	}
 }
