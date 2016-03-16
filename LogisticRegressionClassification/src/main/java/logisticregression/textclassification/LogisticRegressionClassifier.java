@@ -318,29 +318,29 @@ public class LogisticRegressionClassifier {
 
 	public static void main(String[] args) throws IOException {
 		LogisticRegressionClassifier classifier = new LogisticRegressionClassifier();
-		System.out.println("Please provide path to the input file:");
+		System.out.println("Please provide path to the training folder(should contain two subfolders ham & spam with input files):");
 		classifier.initialize(null);
 		Scanner sc = new Scanner(System.in);
-		String path = sc.nextLine();
+		String path = sc.next();
 		if (new File(path).isDirectory()) {
 
 			System.out.println("number of Iterations:");
 			int numIterations = sc.nextInt();
 
-			System.out.println("Please provide path to the input file:");
+			System.out.println("lambda:");
 			double lambda = sc.nextDouble();
-			System.out.println("Please provide path to the input file:");
+			System.out.println("learningRate/Step:");
 			double learningRate = sc.nextDouble();
 			double[] weights = classifier.trainModel(path,numIterations, lambda, learningRate); 
 			System.out.println("Prediction on Training data: ");
 			classifier.calculateAccuracy(path, weights);
-			System.out.println("Prediction on Test data: ");
 			System.out.println("Please provide path to Test folder on which prediction needs to be made:");
-			String testPath = sc.nextLine();
+			String testPath = sc.next();
+			System.out.println("Prediction on Test data: ");
 			classifier.calculateAccuracy(testPath, weights);
 
 			System.out.println("Please provide path to stopWords file:");
-			String stopWordsFile = sc.nextLine();
+			String stopWordsFile = sc.next();
 			classifier.initialize(new File(stopWordsFile));
 			weights = classifier.trainModel(path, numIterations, lambda, learningRate);
 			System.out.println("Prediction on Training data: ");
