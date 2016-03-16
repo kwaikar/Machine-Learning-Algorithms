@@ -53,7 +53,7 @@ public class LogisticRegressionClassifier {
 	 * @param path
 	 * @throws IOException
 	 */
-	private double[] trainModel(String path) throws IOException {
+	private double[] trainModel(String path, int numIterations, double lambda, double learningRate) throws IOException {
 		double[] weights = new double[0];
 		File parentFolder = new File(path);
 		if (parentFolder.exists()) {
@@ -96,9 +96,7 @@ public class LogisticRegressionClassifier {
 			 * for logistic regression.
 			 */
 
-			double learningRate = 0.05; // .1- 0.01
-			double lambda = 0.0001; // less than .5
-			weights = applyLogisticRegression(classes, 10, learningRate, lambda);
+			weights = applyLogisticRegression(classes, numIterations, learningRate, lambda);
 			return weights;
 		} else {
 			System.out.println("Invalid directory structure. Please provide path of the directory that contains"
@@ -325,25 +323,30 @@ public class LogisticRegressionClassifier {
 		Scanner sc = new Scanner(System.in);
 		String path = sc.nextLine();
 		if (new File(path).isDirectory()) {
-			double[] weights = classifier.trainModel(path);
-			for (double d : weights) {
-				System.out.print(d + "|");
-			}
+
+			System.out.println("number of Iterations:");
+			int numIterations = sc.nextInt();
+
+			System.out.println("Please provide path to the input file:");
+			double lambda = sc.nextDouble();
+			System.out.println("Please provide path to the input file:");
+			double learningRate = sc.nextDouble();
+			double[] weights = classifier.trainModel(path,numIterations, lambda, learningRate); 
 			System.out.println("Prediction on Training data: ");
 			classifier.calculateAccuracy(path, weights);
 			System.out.println("Prediction on Test data: ");
 			System.out.println("Please provide path to Test folder on which prediction needs to be made:");
-			String testPath  = sc.nextLine();
+			String testPath = sc.nextLine();
 			classifier.calculateAccuracy(testPath, weights);
 
 			System.out.println("Please provide path to stopWords file:");
-			String stopWordsFile  = sc.nextLine();
+			String stopWordsFile = sc.nextLine();
 			classifier.initialize(new File(stopWordsFile));
-			weights = classifier.trainModel(path);
+			weights = classifier.trainModel(path, numIterations, lambda, learningRate);
 			System.out.println("Prediction on Training data: ");
 			classifier.calculateAccuracy(path, weights);
 			System.out.println("Prediction on Test data: ");
-			classifier.calculateAccuracy(classifier.getClass().getResource("/test").getFile(), weights);
+			classifier.calculateAccuracy(testPath, weights);
 		} else {
 			System.out.println(
 					"Invalid folder path. Please make sure that you share path to the directory in which ham and spam folder exist");

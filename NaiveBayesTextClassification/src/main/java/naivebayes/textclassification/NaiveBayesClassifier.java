@@ -309,7 +309,7 @@ public class NaiveBayesClassifier {
 		System.out.println("Prediction on Training data: ");
 		classifier.calculateAccuracy(path);
 		System.out.println("Prediction on Test data: ");
-		classifier.calculateAccuracy(classifier.getClass().getResource("/test").getFile());
+		classifier.calculateAccuracy(testPath);
 		} else {
 			System.out.println(
 					"Invalid folder path. Please make sure that you share path to the directory in which ham and spam folder exist");
