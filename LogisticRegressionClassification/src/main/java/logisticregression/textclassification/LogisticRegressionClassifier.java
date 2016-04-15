@@ -42,7 +42,7 @@ public class LogisticRegressionClassifier {
 		if (stopWordsFile != null && stopWordsFile.exists()) {
 			stopWordsList = new HashSet<String>(
 					Arrays.asList(FileUtils.readFileToString(stopWordsFile).split(SIMPLE_TOKENIZER_REGEX)));
-			System.out.println("Stopwords File found: Loaded " + stopWordsList.size() + " stop words in memory");
+		//	System.out.println("Stopwords File found: Loaded " + stopWordsList.size() + " stop words in memory");
 		}
 	}
 
@@ -57,13 +57,13 @@ public class LogisticRegressionClassifier {
 		double[] weights = new double[0];
 		File parentFolder = new File(path);
 		if (parentFolder.exists()) {
-			System.out.println("Training on");
+			//System.out.println("Training on");
 			File[] classes = parentFolder.listFiles();
 			for (File classDirectory : classes) {
 
 				if (classDirectory.isDirectory()) {
 					String classOfData = classDirectory.getName();
-					System.out.println("\t" + classDirectory.getAbsolutePath());
+				//	System.out.println("\t" + classDirectory.getAbsolutePath());
 
 					for (File classifiedFile : classDirectory.listFiles()) {
 						/**
@@ -128,7 +128,7 @@ public class LogisticRegressionClassifier {
 			 * name is expected to be class name.
 			 */
 			for (File classDirectory : classes) {
-				System.out.println("\t" + classDirectory.getAbsolutePath());
+				//System.out.println("\t" + classDirectory.getAbsolutePath());
 				if (classDirectory.isDirectory()) {
 
 					/**
@@ -154,7 +154,7 @@ public class LogisticRegressionClassifier {
 				}
 			}
 			accuracy = 100 * (double) correctPredictions / totalDocs;
-			System.out.println("Total accuracy found : " + accuracy);
+	//		System.out.println("Total accuracy found : " + accuracy);
 		}
 
 		return (accuracy);
@@ -316,7 +316,43 @@ public class LogisticRegressionClassifier {
 		}
 	}
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws Exception {
+
+		double[] learningRates = {0.1};
+		
+		String trainPath = "S:\\ML\\Source_code\\Machine_learning\\PerceptronClassification\\src\\main\\resources\\train\\";
+		String testPath = "S:\\ML\\Source_code\\Machine_learning\\PerceptronClassification\\src\\main\\resources\\test\\";
+		String stopWordsPath = "S:\\ML\\Source_code\\Machine_learning\\PerceptronClassification\\src\\main\\resources\\stopWords.txt";
+		for(int i=1;i<200;i=i+5)
+		{
+		trainTestAndPrintAccuracy(i, learningRates, trainPath, testPath, stopWordsPath);
+		}
+
+	}
+	/**
+	 * @param numIterations
+	 * @param learningRates
+	 * @param trainPath
+	 * @param testPath
+	 * @param stopWordsPath
+	 * @throws IOException
+	 */
+	public static void trainTestAndPrintAccuracy(int numIterations, double[] learningRates, String trainPath,
+			String testPath, String stopWordsPath) throws IOException {
+		for (double learningRate : learningRates) {
+			System.out.print(numIterations + "\t" + new Double(learningRate).toString()+"\t");
+			LogisticRegressionClassifier classifier = new LogisticRegressionClassifier ();
+			classifier.initialize(null);
+			double[] weights = classifier.trainModel(trainPath, numIterations,0.1, learningRate);
+			System.out.print(classifier.calculateAccuracy(testPath, weights));
+			  classifier = new LogisticRegressionClassifier ();
+			classifier.initialize(new File(stopWordsPath));
+			weights = classifier.trainModel(trainPath, numIterations,0.1, learningRate);
+			System.out.print("\t" + classifier.calculateAccuracy(testPath, weights));
+			System.out.println();
+		}
+	}
+	public static void main2(String[] args) throws IOException {
 		LogisticRegressionClassifier classifier = new LogisticRegressionClassifier();
 		System.out.println("Please provide path to the training folder(should contain two subfolders ham & spam with input files):");
 		classifier.initialize(null);

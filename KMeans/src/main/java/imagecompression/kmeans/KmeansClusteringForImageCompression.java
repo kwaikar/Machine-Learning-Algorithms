@@ -35,9 +35,7 @@ public class KmeansClusteringForImageCompression {
 		for (int i = 0; i < kcentroids.length; i++) {
 			kcentroids[i] = (new Random().nextInt(555555));
 		}
-		for (int j : kcentroids) {
-			System.out.print(j + " ");
-		}
+	 
 		Map<Integer, List<Integer>> clusterMap = new HashMap<Integer, List<Integer>>();
 
 		for (int iter = 0; iter < numIterations; iter++) {
